@@ -166,6 +166,10 @@ public class AndroidInstrumentationReporter implements Formatter {
                 instrumentation.sendStatus(StatusCodes.ERROR, testResult);
             }
             break;
+        case AMBIGUOUS:
+	    testResult.putString(StatusKeys.STACK, getStackTrace(severestResult.getError()));
+	    instrumentation.sendStatus(StatusCodes.ERROR, testResult);
+            break;
         case PENDING:
             testResult.putString(StatusKeys.STACK, severestResult.getErrorMessage());
             instrumentation.sendStatus(StatusCodes.ERROR, testResult);

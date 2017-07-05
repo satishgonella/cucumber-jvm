@@ -117,7 +117,7 @@ public class Runner implements UnreportedStepExecutor {
                     match = new UndefinedStepDefinitionMatch(step, snippets);
                 }
             } catch (AmbiguousStepDefinitionsException e) {
-                match = new AmbiguousStepDefinitionsMatch(step, e);
+                match = new AmbiguousStepDefinitionsMatch(pickleEvent.uri, step, e);
             } catch (Throwable t) {
                 match = new FailedStepInstantiationMatch(pickleEvent.uri, step, t);
             }
