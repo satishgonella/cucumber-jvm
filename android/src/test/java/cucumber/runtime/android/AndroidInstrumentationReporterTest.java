@@ -2,6 +2,7 @@ package cucumber.runtime.android;
 
 import android.app.Instrumentation;
 import android.os.Bundle;
+import cucumber.api.event.TestSourceRead;
 import cucumber.api.PendingException;
 import cucumber.api.Result;
 import cucumber.api.TestCase;
@@ -36,6 +37,11 @@ public class AndroidInstrumentationReporterTest {
     private final Runtime runtime = mock(Runtime.class);
     private final Instrumentation instrumentation = mock(Instrumentation.class);
 
+    private final TestSourceRead testSourceRead = new TestSourceRead(
+	    0l,
+	    "path/file.feature",
+	    "en",
+	    "Feature: feature name\n  Scenario: some important scenario\n");
     private final TestCase testCase = mock(TestCase.class);
     private final Result firstResult = mock(Result.class);
     private final Result secondResult = mock(Result.class);
@@ -54,6 +60,7 @@ public class AndroidInstrumentationReporterTest {
         final AndroidInstrumentationReporter formatter = new AndroidInstrumentationReporter(runtime, instrumentation, 1);
 
         // when
+        formatter.testSourceRead(testSourceRead);
         formatter.startTestCase(testCase);
 
         // then
@@ -63,7 +70,7 @@ public class AndroidInstrumentationReporterTest {
 
         final Bundle actualBundle = captor.getValue();
 
-        assertThat(actualBundle.getString(AndroidInstrumentationReporter.StatusKeys.CLASS), containsString(testCase.getPath()));
+        assertThat(actualBundle.getString(AndroidInstrumentationReporter.StatusKeys.CLASS), containsString("feature name"));
     }
 
     @Test
@@ -74,6 +81,7 @@ public class AndroidInstrumentationReporterTest {
         mockResultStatus(firstResult, Result.Type.PASSED);
 
         // when
+        formatter.testSourceRead(testSourceRead);
         formatter.startTestCase(testCase);
         formatter.finishTestStep(firstResult);
         formatter.finishTestCase();
@@ -85,7 +93,7 @@ public class AndroidInstrumentationReporterTest {
 
         final Bundle actualBundle = captor.getValue();
 
-        assertThat(actualBundle.getString(AndroidInstrumentationReporter.StatusKeys.CLASS), containsString(testCase.getPath()));
+        assertThat(actualBundle.getString(AndroidInstrumentationReporter.StatusKeys.CLASS), containsString("feature name"));
     }
 
     @Test

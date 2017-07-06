@@ -8,9 +8,11 @@ import cucumber.api.event.EventHandler;
 import cucumber.api.event.EventPublisher;
 import cucumber.api.event.TestCaseFinished;
 import cucumber.api.event.TestCaseStarted;
+import cucumber.api.event.TestSourceRead;
 import cucumber.api.event.TestStepFinished;
 import cucumber.api.formatter.Formatter;
 import cucumber.runtime.Runtime;
+import cucumber.runtime.formatter.TestSourcesModel;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -57,6 +59,11 @@ public class AndroidInstrumentationReporter implements Formatter {
     }
 
     /**
+     * The collected TestSourceRead events.
+     */
+    private final TestSourcesModel testSources = new TestSourcesModel();
+    
+    /**
      * The current cucumber runtime.
      */
     private final Runtime runtime;
@@ -78,14 +85,29 @@ public class AndroidInstrumentationReporter implements Formatter {
     private Result severestResult;
 
     /**
-     * The location in the feature file of the current test case.
+     * The uri of the feature file of the current test case.
      */
-    private String currentPath;
+    private String currentUri;
+
+    /**
+     * The name of the current feature.
+     */
+    private String currentFeatureName;
 
     /**
      * The name of the current test case.
      */
     private String currentTestCaseName;
+
+    /**
+     * The event handler for the {@link TestSourceRead} events.
+     */
+    private final EventHandler<TestSourceRead> testSourceReadHandler = new EventHandler<TestSourceRead>() {
+        @Override
+        public void receive(TestSourceRead event) {
+            testSourceRead(event);
+        }
+    };
 
     /**
      * The event handler for the {@link TestCaseStarted} events.
@@ -136,16 +158,24 @@ public class AndroidInstrumentationReporter implements Formatter {
 
     @Override
     public void setEventPublisher(final EventPublisher publisher) {
+        publisher.registerHandlerFor(TestSourceRead.class, testSourceReadHandler);
         publisher.registerHandlerFor(TestCaseStarted.class, testCaseStartedHandler);
         publisher.registerHandlerFor(TestCaseFinished.class, testCaseFinishedHandler);
         publisher.registerHandlerFor(TestStepFinished.class, testStepFinishedHandler);
     }
 
+    void testSourceRead(final TestSourceRead event) {
+	testSources.addTestSourceReadEvent(event.path, event);
+    }
+
     void startTestCase(final TestCase testCase) {
-        currentPath = testCase.getPath();
+	if (!testCase.getPath().equals(currentUri)) {
+	    currentUri = testCase.getPath();
+	    currentFeatureName = testSources.getFeatureName(currentUri);
+	}
         currentTestCaseName = testCase.getName();
         resetSeverestResult();
-        final Bundle testStart = createBundle(currentPath, currentTestCaseName);
+        final Bundle testStart = createBundle(currentFeatureName, currentTestCaseName);
         instrumentation.sendStatus(StatusCodes.START, testStart);
     }
 
@@ -154,7 +184,7 @@ public class AndroidInstrumentationReporter implements Formatter {
     }
 
     void finishTestCase() {
-        final Bundle testResult = createBundle(currentPath, currentTestCaseName);
+        final Bundle testResult = createBundle(currentFeatureName, currentTestCaseName);
 
         switch (severestResult.getStatus()) {
         case FAILED:
